@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './App.css';
+import RightPanel from './components/RightPanel';
 
 // Temporary mock data structure - will be replaced with CSV data
 const mockScenarios = [
@@ -93,34 +94,41 @@ function App() {
 
       {currentScenario && (
         <div className="main-content">
-          <h1 className="content-title">{currentScenario.title}</h1>
-          <div className="category">Category: {currentScenario.category}</div>
-          
-          <div className="chat-container">
-            <div className="chat-message question">
-              <div className="avatar"></div>
-              <div className="message-bubble question-bubble">
-                {currentScenario.question}
+          <div className="content-left">
+            <h1 className="content-title">{currentScenario.title}</h1>
+            <div className="category">Category: {currentScenario.category}</div>
+            
+            <div className="chat-container">
+              <div className="chat-message question">
+                <div className="avatar"></div>
+                <div className="message-bubble question-bubble">
+                  {currentScenario.question}
+                </div>
+              </div>
+              
+              <div className="chat-message response">
+                <div className="avatar"></div>
+                <div className="message-bubble response-bubble">
+                  {currentScenario.response}
+                </div>
               </div>
             </div>
-            
-            <div className="chat-message response">
-              <div className="avatar"></div>
-              <div className="message-bubble response-bubble">
-                {currentScenario.response}
+
+            <div className="analysis-section">
+              <div className="analysis-item">
+                <h3>Why the child asked this question:</h3>
+                <p>{currentScenario.childIntent}</p>
+              </div>
+              
+              <div className="analysis-item">
+                <h3>What the child did after:</h3>
+                <p>{currentScenario.aftermath}</p>
               </div>
             </div>
           </div>
-
-          <div className="analysis-section">
-            <div className="analysis-item">
-              <h3>Why the child asked this question:</h3>
-              <p>{currentScenario.childIntent}</p>
-            </div>
-            
-            <div className="analysis-item">
-              <h3>What the child did after:</h3>
-              <p>{currentScenario.aftermath}</p>
+          <div className="content-right-wrapper">
+            <div className="content-right">
+              <RightPanel scenarioId={currentScenario.id} />
             </div>
           </div>
         </div>
