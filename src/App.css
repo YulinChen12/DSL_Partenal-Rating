@@ -236,6 +236,35 @@ body {
   justify-content: space-between;
 }
 
+.scenario-nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  gap: 10px;
+}
+
+.scenario-nav-buttons button {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.scenario-nav-buttons button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.scenario-nav-buttons button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+
 .rating-content {
   flex: 1;
   display: flex;
