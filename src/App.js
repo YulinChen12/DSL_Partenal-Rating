@@ -1,54 +1,62 @@
-// src/App.js
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './App.css';
+import SurveyChoice from './SurveyChoice';
 import RightPanel from './components/RightPanel';
+import RealismPage from './RealismPage';
 import allScenarios from './20_examples.json';
 
 function App() {
-  // pick 5 random scenarios on load
+  // Modes: 'login' → 'main' → 'realism'
+  const [mode, setMode] = useState('login');
+
+  // Main‐survey state
   const [scenarios, setScenarios] = useState([]);
+  const [selectedScenario, setSelectedScenario] = useState(1);
+  const [feedbackData, setFeedbackData] = useState({}); // in‐memory only
+
+  // 1) When we enter 'main', shuffle & pick 5
   useEffect(() => {
+    if (mode !== 'main') return;
     const arr = [...allScenarios];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    setScenarios(
-      arr
-        .slice(0, 5)
-        .map((s, idx) => ({ ...s, id: idx + 1 }))
-    );
+    const picked = arr.slice(0, 5).map((s, idx) => ({ ...s, id: idx + 1 }));
+    setScenarios(picked);
     setSelectedScenario(1);
-  }, []);
+    setFeedbackData({});
+  }, [mode]);
 
-  const [selectedScenario, setSelectedScenario] = useState(1);
-  const [feedbackData, setFeedbackData] = useState({}); // session-only
-
+  // Save parent feedback (concern + realism slider + comment)
   const handleSaveFeedback = data => {
-    const entry = { ...data, timestamp: new Date().toISOString() };
-    setFeedbackData(prev => ({ ...prev, [data.id]: entry }));
+    setFeedbackData(prev => ({
+      ...prev,
+      [data.id]: data  // data includes id, likert, realistic, comment, etc.
+    }));
   };
 
-  const exportFeedbackToFile = () => {
-    const entries = Object.values(feedbackData);
-    if (entries.length === 0) return;
-    const blob = new Blob([JSON.stringify(entries, null, 2)], {
-      type: 'application/json'
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'parent_feedback_test.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
+  // Shortcut to current scenario
   const currentScenario = scenarios.find(s => s.id === selectedScenario);
 
+  // — LOGIN PAGE —
+  if (mode === 'login') {
+    return <SurveyChoice onNext={() => setMode('main')} />;
+  }
+
+  // — REALISM SURVEY PAGE —
+  if (mode === 'realism') {
+    return (
+      <RealismPage
+        scenarios={scenarios}
+        feedbackData={feedbackData}
+      />
+    );
+  }
+
+  // — MAIN ASSESSMENT PAGE —
   return (
     <div className="App">
       <div className="sidebar">
@@ -68,19 +76,24 @@ function App() {
         </div>
         <div className="scenario-nav-buttons">
           <button
-            onClick={() => setSelectedScenario(selectedScenario - 1)}
+            onClick={() => setSelectedScenario(id => Math.max(1, id - 1))}
             disabled={selectedScenario === 1}
           >
             ← Back
           </button>
           <button
-            onClick={() => setSelectedScenario(selectedScenario + 1)}
+            onClick={() =>
+              setSelectedScenario(id => Math.min(scenarios.length, id + 1))
+            }
             disabled={selectedScenario === scenarios.length}
           >
             Next →
           </button>
         </div>
-        <button onClick={exportFeedbackToFile} className="export-button">
+        <button
+          onClick={() => setMode('realism')}
+          className="export-button"
+        >
           Export Feedback
         </button>
       </div>
@@ -107,7 +120,7 @@ function App() {
                 </div>
               </div>
 
-              {/* Model’s response */}
+              {/* Agent’s response */}
               <div className="chat-message response">
                 <div className="avatar-wrapper">
                   <div className="avatar" />
