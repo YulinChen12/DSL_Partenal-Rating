@@ -1,18 +1,18 @@
 // src/components/RightPanel.js
 import React, { useState, useEffect } from 'react';
 
-export default function RightPanel({ scenario, priorFeedback = {}, onSave }) {
-  const [likert, setLikert] = useState(3);
-  const [comment, setComment] = useState('');
+const RightPanel = ({ scenario, onSave, priorFeedback = {} }) => {
+  // only keep concern + comment
+  const [likert, setLikert] = useState(priorFeedback.likert ?? 3);
+  const [comment, setComment] = useState(priorFeedback.comment ?? '');
   const [status, setStatus] = useState('');
 
-  // Whenever the scenario (or its saved feedback) changes,
-  // reset to either the saved values or the defaults.
+  // reset when scenario changes
   useEffect(() => {
     setLikert(priorFeedback.likert ?? 3);
     setComment(priorFeedback.comment ?? '');
     setStatus('');
-  }, [scenario.id, priorFeedback.likert, priorFeedback.comment]);
+  }, [scenario.id]);
 
   const handleSave = () => {
     onSave({
@@ -21,7 +21,8 @@ export default function RightPanel({ scenario, priorFeedback = {}, onSave }) {
       comment,
       region: scenario.demographic_info.region,
       prompt: scenario.generated_query,
-      response: scenario.agent2_response
+      response: scenario.agent2_response,
+      // timeSpentMs, timestamp, etc. are merged in App.js
     });
     setStatus('Saved!');
     setTimeout(() => setStatus(''), 2000);
@@ -50,7 +51,9 @@ export default function RightPanel({ scenario, priorFeedback = {}, onSave }) {
             <span>Very concerned</span>
           </div>
           <div className="slider-ticks">
-            {[1,2,3,4,5].map(n => <span key={n}>{n}</span>)}
+            {[1, 2, 3, 4, 5].map(n => (
+              <span key={n}>{n}</span>
+            ))}
           </div>
         </div>
 
@@ -74,4 +77,6 @@ export default function RightPanel({ scenario, priorFeedback = {}, onSave }) {
       </div>
     </div>
   );
-}
+};
+
+export default RightPanel;

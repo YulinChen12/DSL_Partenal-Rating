@@ -3,12 +3,14 @@ import React, { useState } from 'react';
 import './SurveyChoice.css';
 
 export default function SurveyChoice({ onNext }) {
+  const [username, setUsername] = useState('');
   const [age, setAge] = useState('');
   const [sex, setSex] = useState('');
   const [character, setCharacter] = useState('');
   const [favoriteActivity, setFavoriteActivity] = useState('');
 
   const isValid =
+    username.trim() &&
     age.trim() &&
     sex &&
     character.trim() &&
@@ -17,6 +19,17 @@ export default function SurveyChoice({ onNext }) {
   return (
     <div className="survey-choice-container">
       <div className="survey-choice-card">
+        {/* Parent Username at the top */}
+        <div className="form-group">
+          <label>Parent Username</label>
+          <input
+            type="text"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            placeholder=""
+          />
+        </div>
+
         <h2>Tell Us About Your Child</h2>
 
         {/* Age */}
@@ -68,6 +81,7 @@ export default function SurveyChoice({ onNext }) {
           disabled={!isValid}
           onClick={() =>
             onNext({
+              username: username.trim(),
               age: age.trim(),
               sex,
               character: character.trim(),

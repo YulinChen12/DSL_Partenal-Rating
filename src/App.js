@@ -1,3 +1,4 @@
+// src/App.js
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -8,15 +9,20 @@ import RealismPage from './RealismPage';
 import allScenarios from './20_examples.json';
 
 function App() {
-  // Modes: 'login' → 'main' → 'realism'
+  // Modes: 'login' | 'main' | 'realism'
   const [mode, setMode] = useState('login');
+
+  // Parent & Child Info
+  const [username, setUsername] = useState('');
+  const [childInfo, setChildInfo] = useState({});
 
   // Main‐survey state
   const [scenarios, setScenarios] = useState([]);
   const [selectedScenario, setSelectedScenario] = useState(1);
-  const [feedbackData, setFeedbackData] = useState({}); // in‐memory only
+  const [feedbackData, setFeedbackData] = useState({}); // holds { [id]: { …data, timeSpentMs } }
+  const [startTimes, setStartTimes] = useState({});     // holds { [id]: timestamp }
 
-  // 1) When we enter 'main', shuffle & pick 5
+  // 1) When we flip into 'main', shuffle & pick 5, clear feedback, start timer for 1
   useEffect(() => {
     if (mode !== 'main') return;
     const arr = [...allScenarios];
@@ -28,22 +34,50 @@ function App() {
     setScenarios(picked);
     setSelectedScenario(1);
     setFeedbackData({});
+    setStartTimes({ 1: Date.now() });
   }, [mode]);
 
-  // Save parent feedback (concern + realism slider + comment)
+  // 2) Whenever you navigate to a new scenario, start its timer if needed
+  useEffect(() => {
+    if (mode !== 'main') return;
+    setStartTimes(prev => {
+      if (prev[selectedScenario]) return prev;
+      return { ...prev, [selectedScenario]: Date.now() };
+    });
+  }, [selectedScenario, mode]);
+
+  // 3) Save feedback + accumulate timeSpent
   const handleSaveFeedback = data => {
-    setFeedbackData(prev => ({
-      ...prev,
-      [data.id]: data  // data includes id, likert, realistic, comment, etc.
-    }));
+    const now = Date.now();
+    const started = startTimes[data.id] || now;
+    const delta = now - started;
+    const previous = feedbackData[data.id]?.timeSpentMs || 0;
+    const timeSpentMs = previous + delta;
+
+    const entry = {
+      ...data,
+      timeSpentMs,
+      timestamp: new Date(now).toISOString()
+    };
+
+    // update feedback and reset that scenario's start time
+    setFeedbackData(prev => ({ ...prev, [data.id]: entry }));
+    setStartTimes(prev => ({ ...prev, [data.id]: now }));
   };
 
-  // Shortcut to current scenario
   const currentScenario = scenarios.find(s => s.id === selectedScenario);
 
   // — LOGIN PAGE —
   if (mode === 'login') {
-    return <SurveyChoice onNext={() => setMode('main')} />;
+    return (
+      <SurveyChoice
+        onNext={info => {
+          setUsername(info.username);
+          setChildInfo(info);
+          setMode('main');
+        }}
+      />
+    );
   }
 
   // — REALISM SURVEY PAGE —
@@ -52,6 +86,7 @@ function App() {
       <RealismPage
         scenarios={scenarios}
         feedbackData={feedbackData}
+        username={username}
       />
     );
   }
@@ -65,9 +100,7 @@ function App() {
           {scenarios.map(s => (
             <div
               key={s.id}
-              className={`scenario-item ${
-                selectedScenario === s.id ? 'selected' : ''
-              }`}
+              className={`scenario-item ${selectedScenario === s.id ? 'selected' : ''}`}
               onClick={() => setSelectedScenario(s.id)}
             >
               Scenario {s.id}
@@ -76,24 +109,19 @@ function App() {
         </div>
         <div className="scenario-nav-buttons">
           <button
-            onClick={() => setSelectedScenario(id => Math.max(1, id - 1))}
+            onClick={() => setSelectedScenario(i => Math.max(1, i - 1))}
             disabled={selectedScenario === 1}
           >
             ← Back
           </button>
           <button
-            onClick={() =>
-              setSelectedScenario(id => Math.min(scenarios.length, id + 1))
-            }
+            onClick={() => setSelectedScenario(i => Math.min(scenarios.length, i + 1))}
             disabled={selectedScenario === scenarios.length}
           >
             Next →
           </button>
         </div>
-        <button
-          onClick={() => setMode('realism')}
-          className="export-button"
-        >
+        <button onClick={() => setMode('realism')} className="export-button">
           Export Feedback
         </button>
       </div>

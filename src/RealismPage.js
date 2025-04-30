@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 
-export default function RealismPage({ scenarios, feedbackData }) {
-  // initialize each realism-survey rating to 3
+export default function RealismPage({
+  scenarios = [],         // default to empty array
+  feedbackData = {},      // default to empty object
+  username = 'user'       // default username
+}) {
+  // initialize each realism rating to 3
   const [ratings, setRatings] = useState(
     scenarios.reduce((acc, s) => {
       acc[s.id] = 3;
@@ -9,12 +13,10 @@ export default function RealismPage({ scenarios, feedbackData }) {
     }, {})
   );
 
-  // update one rating
   const handleChange = (id, value) => {
     setRatings(prev => ({ ...prev, [id]: value }));
   };
 
-  // on submit, merge both feedbackData and realism-survey ratings, then download
   const handleSubmit = () => {
     const merged = scenarios.map(s => ({
       ...feedbackData[s.id],
@@ -26,11 +28,14 @@ export default function RealismPage({ scenarios, feedbackData }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'full_feedback_with_realism.json';
+    // use username in filename
+    a.download = `${username}_full_feedback.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+
+    window.alert('Thank you for completing the survey!');
   };
 
   return (
