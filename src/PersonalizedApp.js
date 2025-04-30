@@ -1,71 +1,80 @@
-// src/App.js
+// src/PersonalizedApp.js
 import React, { useState, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import './App.css';
+import './App.css';  // reuses your main styles
 import RightPanel from './components/RightPanel';
-import allScenarios from './20_examples.json';
+import scenarioData from './full_scenarios_20250422.json';
 
-function App() {
-  // pick 5 random scenarios on load
-  const [scenarios, setScenarios] = useState([]);
+export default function PersonalizedApp({ childCharacteristics, onBack }) {
+  const scenarios = scenarioData.map((s, i) => ({ ...s, id: i + 1 }));
+  const [selectedScenario, setSelectedScenario] = useState(1);
+  const [feedbackData, setFeedbackData] = useState({});
+
+  const currentScenario = scenarios.find(s => s.id === selectedScenario) || null;
+
+  // load saved feedback
   useEffect(() => {
-    const arr = [...allScenarios];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+    const saved = localStorage.getItem('parent_feedback');
+    if (saved) {
+      try {
+        const arr = JSON.parse(saved);
+        const map = {};
+        arr.forEach(e => { map[e.id] = e; });
+        setFeedbackData(map);
+      } catch (err) {
+        console.warn(err);
+      }
     }
-    setScenarios(
-      arr
-        .slice(0, 5)
-        .map((s, idx) => ({ ...s, id: idx + 1 }))
-    );
-    setSelectedScenario(1);
   }, []);
 
-  const [selectedScenario, setSelectedScenario] = useState(1);
-  const [feedbackData, setFeedbackData] = useState({}); // session-only
-
-  const handleSaveFeedback = data => {
+  // save feedback handler
+  const handleSaveFeedback = (data) => {
     const entry = { ...data, timestamp: new Date().toISOString() };
-    setFeedbackData(prev => ({ ...prev, [data.id]: entry }));
+    const updated = { ...feedbackData, [data.id]: entry };
+    setFeedbackData(updated);
+    localStorage.setItem('parent_feedback', JSON.stringify(Object.values(updated)));
   };
 
-  const exportFeedbackToFile = () => {
-    const entries = Object.values(feedbackData);
-    if (entries.length === 0) return;
-    const blob = new Blob([JSON.stringify(entries, null, 2)], {
-      type: 'application/json'
-    });
+  // export to JSON
+  const exportFeedback = () => {
+    const d = localStorage.getItem('parent_feedback');
+    if (!d) return;
+    const blob = new Blob([d], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'parent_feedback_test.json';
+    a.download = 'parent_feedback.json';
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
   };
 
-  const currentScenario = scenarios.find(s => s.id === selectedScenario);
-
   return (
     <div className="App">
+      {/* Top bar with Back button */}
       <div className="sidebar">
-        <h1>Assessment</h1>
+        <button onClick={onBack} className="back-login-button">
+          ← Home
+        </button>
+        <h1>Assessment (Personalized)</h1>
+        <p className="personal-note">
+          Personalized for: <strong>{childCharacteristics}</strong>
+        </p>
+
+        {/* Scenario list */}
         <div className="scenario-list">
           {scenarios.map(s => (
             <div
               key={s.id}
-              className={`scenario-item ${
-                selectedScenario === s.id ? 'selected' : ''
-              }`}
+              className={`scenario-item ${selectedScenario === s.id ? 'selected' : ''}`}
               onClick={() => setSelectedScenario(s.id)}
             >
               Scenario {s.id}
             </div>
           ))}
         </div>
+
+        {/* Navigation buttons */}
         <div className="scenario-nav-buttons">
           <button
             onClick={() => setSelectedScenario(selectedScenario - 1)}
@@ -80,11 +89,14 @@ function App() {
             Next →
           </button>
         </div>
-        <button onClick={exportFeedbackToFile} className="export-button">
+
+        {/* Export button */}
+        <button onClick={exportFeedback} className="export-button">
           Export Feedback
         </button>
       </div>
 
+      {/* Main content */}
       {currentScenario && (
         <div className="main-content">
           <div className="content-left">
@@ -94,29 +106,16 @@ function App() {
             </div>
 
             <div className="chat-container">
-              {/* Child’s question */}
               <div className="chat-message question">
-                <div className="avatar-wrapper">
-                  <div className="avatar" />
-                  <div className="speaker-name">Child</div>
-                </div>
+                <div className="avatar" />
                 <div className="message-bubble question-bubble">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {currentScenario.generated_query}
-                  </ReactMarkdown>
+                  {currentScenario.generated_query}
                 </div>
               </div>
-
-              {/* Model’s response */}
               <div className="chat-message response">
-                <div className="avatar-wrapper">
-                  <div className="avatar" />
-                  <div className="speaker-name">Agent</div>
-                </div>
+                <div className="avatar" />
                 <div className="message-bubble response-bubble">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {currentScenario.agent2_response}
-                  </ReactMarkdown>
+                  {currentScenario.agent2_response}
                 </div>
               </div>
             </div>
@@ -136,10 +135,9 @@ function App() {
           <div className="content-right-wrapper">
             <div className="content-right">
               <RightPanel
-                key={currentScenario.id}
                 scenario={currentScenario}
-                priorFeedback={feedbackData[currentScenario.id]}
                 onSave={handleSaveFeedback}
+                priorFeedback={feedbackData[currentScenario.id]}
               />
             </div>
           </div>
@@ -148,5 +146,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
