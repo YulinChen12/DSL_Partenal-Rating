@@ -1,20 +1,107 @@
 // src/components/RightPanel.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const RightPanel = ({ scenario, onSave, priorFeedback = {} }) => {
+// Timer display component for tracking typing time
+const TypingTimer = ({ isTyping, startTime, elapsedTime }) => {
+  const [currentTime, setCurrentTime] = useState(elapsedTime || 0);
+  
+  useEffect(() => {
+    if (!isTyping || !startTime) return;
+    
+    // Update the timer every second
+    const timer = setInterval(() => {
+      const currentElapsed = Date.now() - startTime;
+      setCurrentTime(elapsedTime + currentElapsed);
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [startTime, elapsedTime, isTyping]);
+  
+  // Format time as mm:ss
+  const formatTime = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+  
+  return (
+    <div className="typing-timer" style={{ 
+      fontSize: '12px',
+      marginTop: '5px',
+      color: '#666',
+      textAlign: 'right'
+    }}>
+      Typing time: {formatTime(currentTime)}
+    </div>
+  );
+};
+
+const RightPanel = ({ 
+  scenario, 
+  onSave, 
+  priorFeedback = {},
+  onTypingStart,
+  onTypingStop,
+  typingElapsedTime = 0,
+  typingStartTime = null
+}) => {
   // only keep concern + comment
   const [likert, setLikert] = useState(priorFeedback.likert ?? 3);
   const [comment, setComment] = useState(priorFeedback.comment ?? '');
   const [status, setStatus] = useState('');
+  
+  // For typing timer display
+  const [isTyping, setIsTyping] = useState(false);
+  const hadTypedRef = useRef(false);
 
   // reset when scenario changes
   useEffect(() => {
     setLikert(priorFeedback.likert ?? 3);
     setComment(priorFeedback.comment ?? '');
     setStatus('');
+    
+    // Reset typing state for new scenario
+    setIsTyping(false);
+    hadTypedRef.current = false;
   }, [scenario.id]);
 
+  const handleCommentChange = (e) => {
+    const newComment = e.target.value;
+    setComment(newComment);
+    
+    // Start typing timer on first keystroke
+    if (!isTyping && newComment !== '') {
+      setIsTyping(true);
+      onTypingStart();
+      hadTypedRef.current = true;
+    }
+  };
+
+  const handleCommentBlur = () => {
+    // When user leaves comment box, pause timer
+    if (isTyping) {
+      setIsTyping(false);
+      onTypingStop();
+    }
+  };
+
+  const handleCommentFocus = () => {
+    // Only restart timer if user has typed before
+    if (hadTypedRef.current && !isTyping) {
+      setIsTyping(true);
+      onTypingStart();
+    }
+  };
+
   const handleSave = () => {
+    // Stop typing timer if active
+    if (isTyping) {
+      setIsTyping(false);
+      onTypingStop();
+    }
+    
+    // Send data to parent
     onSave({
       id: scenario.id,
       likert,
@@ -22,7 +109,7 @@ const RightPanel = ({ scenario, onSave, priorFeedback = {} }) => {
       region: scenario.demographic_info.region,
       prompt: scenario.generated_query,
       response: scenario.agent2_response,
-      // timeSpentMs, timestamp, etc. are merged in App.js
+      // typingTimeMs is added in App.js
     });
     setStatus('Saved!');
     setTimeout(() => setStatus(''), 2000);
@@ -63,9 +150,18 @@ const RightPanel = ({ scenario, onSave, priorFeedback = {} }) => {
         </label>
         <textarea
           value={comment}
-          onChange={e => setComment(e.target.value)}
+          onChange={handleCommentChange}
+          onFocus={handleCommentFocus}
+          onBlur={handleCommentBlur}
           placeholder="Type your thoughts here..."
           className="comment-box"
+        />
+        
+        {/* Typing timer display */}
+        <TypingTimer 
+          isTyping={isTyping}
+          startTime={typingStartTime}
+          elapsedTime={typingElapsedTime}
         />
       </div>
 
