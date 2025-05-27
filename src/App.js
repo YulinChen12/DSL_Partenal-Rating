@@ -241,7 +241,9 @@ function App() {
             ...prev[currentId],
             timeSpentMs: totalTimeSpentMs,
             typingTimeMs: typingTimeMs,
-            timestamp: new Date(now).toISOString()
+            timestamp: new Date(now).toISOString(),
+            relevanceLikert: prev[currentId].relevanceLikert || 3,
+            relevanceComment: prev[currentId].relevanceComment || ''
           }
         }));
       }

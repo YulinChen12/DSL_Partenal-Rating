@@ -49,6 +49,8 @@ const RightPanel = ({
   // only keep concern + comment
   const [likert, setLikert] = useState(priorFeedback.likert ?? 3);
   const [comment, setComment] = useState(priorFeedback.comment ?? '');
+  const [relevanceLikert, setRelevanceLikert] = useState(priorFeedback.relevanceLikert ?? 3);
+  const [relevanceComment, setRelevanceComment] = useState(priorFeedback.relevanceComment ?? '');
   const [status, setStatus] = useState('');
   
   // For typing timer display
@@ -59,6 +61,8 @@ const RightPanel = ({
   useEffect(() => {
     setLikert(priorFeedback.likert ?? 3);
     setComment(priorFeedback.comment ?? '');
+    setRelevanceLikert(priorFeedback.relevanceLikert ?? 3);
+    setRelevanceComment(priorFeedback.relevanceComment ?? '');
     setStatus('');
     
     // Reset typing state for new scenario
@@ -69,6 +73,18 @@ const RightPanel = ({
   const handleCommentChange = (e) => {
     const newComment = e.target.value;
     setComment(newComment);
+    
+    // Start typing timer on first keystroke
+    if (!isTyping && newComment !== '') {
+      setIsTyping(true);
+      onTypingStart();
+      hadTypedRef.current = true;
+    }
+  };
+
+  const handleRelevanceCommentChange = (e) => {
+    const newComment = e.target.value;
+    setRelevanceComment(newComment);
     
     // Start typing timer on first keystroke
     if (!isTyping && newComment !== '') {
@@ -106,6 +122,8 @@ const RightPanel = ({
       id: scenario.id,
       likert,
       comment,
+      relevanceLikert,
+      relevanceComment,
       region: scenario.demographic_info.region,
       prompt: scenario.generated_query,
       response: scenario.agent2_response,
@@ -162,6 +180,43 @@ const RightPanel = ({
           isTyping={isTyping}
           startTime={typingStartTime}
           elapsedTime={typingElapsedTime}
+        />
+
+        {/* Relevance slider */}
+        <label className="label-block" style={{ marginTop: '2rem' }}>
+          How relevant was this scenario to ways you think your child would interact with the model?
+        </label>
+        <div className="slider-container">
+          <input
+            type="range"
+            min="1"
+            max="5"
+            value={relevanceLikert}
+            onChange={e => setRelevanceLikert(Number(e.target.value))}
+            className="likert-slider"
+          />
+          <div className="slider-labels">
+            <span>Not relevant</span>
+            <span>Very relevant</span>
+          </div>
+          <div className="slider-ticks">
+            {[1, 2, 3, 4, 5].map(n => (
+              <span key={n}>{n}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Relevance comment box */}
+        <label className="label-block" style={{ marginTop: '2rem' }}>
+          How was this scenario relevant or irrelevant? What could be updated?
+        </label>
+        <textarea
+          value={relevanceComment}
+          onChange={handleRelevanceCommentChange}
+          onFocus={handleCommentFocus}
+          onBlur={handleCommentBlur}
+          placeholder="Type your feedback here..."
+          className="comment-box"
         />
       </div>
 
